@@ -37,10 +37,11 @@ int xwm_mime_map(enum mime_map_method method, const mime_map_arg_t in,
 		mime_map_arg_t *inout) {
 	static struct {
 		const char *mime;
+		const char *pseudo_mime;
 		size_t atomidx;
 	} mime_atom_map[] = {
-		{ "text/plain;charset=utf-8", UTF8_STRING },
-		{ "text/plain", TEXT },
+		{ "text/plain;charset=utf-8", "UTF8_STRING", UTF8_STRING },
+		{ "text/plain", "TEXT", TEXT },
 	};
 
 	assert(inout != NULL);
@@ -75,6 +76,15 @@ int xwm_mime_map(enum mime_map_method method, const mime_map_arg_t in,
 		}
 		inout->mime = xwm_get_atom_name(inout->xwm, in.atom);
 		return 1;
+	case MAP_MIME_TO_PSEUDOMIME:
+		for (size_t i = 0; i < sizeof(mime_atom_map)/sizeof(*mime_atom_map);
+				i++) {
+			if (!strcmp(mime_atom_map[i].mime, in.mime)) {
+				inout->pseudo_mime = mime_atom_map[i].pseudo_mime;
+				return 0;
+			}
+		}
+		break;
 	}
 
 	return -1;

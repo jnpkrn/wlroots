@@ -72,11 +72,13 @@ void xwm_selection_finish(struct wlr_xwm *xwm);
 enum mime_map_method {
 	MAP_MIME_TO_ATOM,
 	MAP_ATOM_TO_MIME,
+	MAP_MIME_TO_PSEUDOMIME,
 };
 
 typedef union mime_map_arg {
 	struct wlr_xwm *xwm;
 	char *mime;
+	const char *pseudo_mime;
 	xcb_atom_t atom;
 } mime_map_arg_t;
 
@@ -94,6 +96,8 @@ typedef union mime_map_arg {
  * MAP_MIME_TO_ATOM       |    .mime     |    .xwm     |   .atom
  * -----------------------+--------------+-------------+---------------
  * MAP_ATOM_TO_MIME       |    .atom     |    .xwm     |   .mime
+ * -----------------------+--------------+-------------+---------------
+ * MAP_MIME_TO_PSEUDOMIME |    .mime     |     N/A     |   .pseudomime
  * -----------------------+--------------+-------------+---------------
  *
  * Apparently, there's seemingly a hazard with inout being used in two

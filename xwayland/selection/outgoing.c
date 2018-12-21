@@ -332,8 +332,11 @@ static void xwm_selection_send_targets(struct wlr_xwm_selection *selection,
 	size_t i = 0;
 	char **mime_type_ptr;
 	wl_array_for_each(mime_type_ptr, mime_types) {
-		char *mime_type = *mime_type_ptr;
-		targets[2+i] = xwm_mime_type_to_atom(xwm, mime_type);
+		mime_map_arg_t in, inout;
+		in.mime = *mime_type_ptr;
+		inout.xwm = xwm;
+		xwm_mime_map(MAP_MIME_TO_ATOM, in, &inout);
+		targets[2+i] = inout.atom;
 		++i;
 	}
 
@@ -406,7 +409,12 @@ void xwm_handle_selection_request(struct wlr_xwm *xwm,
 		xwm_selection_send_notify(selection->xwm, req, true);
 	} else {
 		// Send data
-		char *mime_type = xwm_mime_type_from_atom(xwm, req->target);
+		mime_map_arg_t in, inout;
+		in.atom = req->target;
+		inout.xwm = xwm;
+		xwm_mime_map(MAP_ATOM_TO_MIME, in, &inout);
+		char *mime_type = inout.mime;
+
 		if (mime_type == NULL) {
 			wlr_log(WLR_ERROR, "ignoring selection request: unknown atom %u",
 				req->target);

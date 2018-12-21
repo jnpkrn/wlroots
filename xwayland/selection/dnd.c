@@ -74,8 +74,11 @@ static void xwm_dnd_send_enter(struct wlr_xwm *xwm) {
 		size_t i = 0;
 		char **mime_type_ptr;
 		wl_array_for_each(mime_type_ptr, mime_types) {
-			char *mime_type = *mime_type_ptr;
-			data.data32[2+i] = xwm_mime_type_to_atom(xwm, mime_type);
+			mime_map_arg_t in, inout;
+			in.mime = *mime_type_ptr;
+			inout.xwm = xwm;
+			xwm_mime_map(MAP_MIME_TO_ATOM, in, &inout);
+			data.data32[2+i] = inout.atom;
 			++i;
 		}
 	} else {
@@ -87,8 +90,11 @@ static void xwm_dnd_send_enter(struct wlr_xwm *xwm) {
 		size_t i = 0;
 		char **mime_type_ptr;
 		wl_array_for_each(mime_type_ptr, mime_types) {
-			char *mime_type = *mime_type_ptr;
-			targets[i] = xwm_mime_type_to_atom(xwm, mime_type);
+			mime_map_arg_t in, inout;
+			in.mime = *mime_type_ptr;
+			inout.xwm = xwm;
+			xwm_mime_map(MAP_MIME_TO_ATOM, in, &inout);
+			targets[i] = inout.atom;
 			++i;
 		}
 

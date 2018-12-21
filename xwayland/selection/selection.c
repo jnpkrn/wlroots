@@ -1,4 +1,4 @@
-#define _POSIX_C_SOURCE 200809L
+#define _POSIX_C_SOURCE 200809L  /* strdup */
 #include <assert.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -33,33 +33,51 @@ void xwm_selection_transfer_destroy_property_reply(
 	transfer->property_reply = NULL;
 }
 
-xcb_atom_t xwm_mime_type_to_atom(struct wlr_xwm *xwm, char *mime_type) {
-	if (strcmp(mime_type, "text/plain;charset=utf-8") == 0) {
-		return xwm->atoms[UTF8_STRING];
-	} else if (strcmp(mime_type, "text/plain") == 0) {
-		return xwm->atoms[TEXT];
+int xwm_mime_map(enum mime_map_method method, const mime_map_arg_t in,
+		mime_map_arg_t *inout) {
+	static struct {
+		const char *mime;
+		size_t atomidx;
+	} mime_atom_map[] = {
+		{ "text/plain;charset=utf-8", UTF8_STRING },
+		{ "text/plain", TEXT },
+	};
+
+	assert(inout != NULL);
+
+	switch (method) {
+	case MAP_MIME_TO_ATOM:
+		for (size_t i = 0; i < sizeof(mime_atom_map)/sizeof(*mime_atom_map);
+				i++) {
+			if (!strcmp(mime_atom_map[i].mime, in.mime)) {
+				inout->atom = inout->xwm->atoms[mime_atom_map[i].atomidx];
+				return 0;
+			}
+		}
+		xcb_intern_atom_cookie_t cookie =
+			xcb_intern_atom(inout->xwm->xcb_conn, 0, strlen(in.mime), in.mime);
+		xcb_intern_atom_reply_t *reply =
+			xcb_intern_atom_reply(inout->xwm->xcb_conn, cookie, NULL);
+		if (reply == NULL) {
+			inout->atom = XCB_ATOM_NONE;
+		} else {
+			free(reply);
+			inout->atom = reply->atom;
+		}
+		return 1;
+	case MAP_ATOM_TO_MIME:
+		for (size_t i = 0; i < sizeof(mime_atom_map)/sizeof(*mime_atom_map);
+				i++) {
+			if (inout->xwm->atoms[mime_atom_map[i].atomidx] == in.atom) {
+				inout->mime = strdup(mime_atom_map[i].mime);
+				return 0;
+			}
+		}
+		inout->mime = xwm_get_atom_name(inout->xwm, in.atom);
+		return 1;
 	}
 
-	xcb_intern_atom_cookie_t cookie =
-		xcb_intern_atom(xwm->xcb_conn, 0, strlen(mime_type), mime_type);
-	xcb_intern_atom_reply_t *reply =
-		xcb_intern_atom_reply(xwm->xcb_conn, cookie, NULL);
-	if (reply == NULL) {
-		return XCB_ATOM_NONE;
-	}
-	xcb_atom_t atom = reply->atom;
-	free(reply);
-	return atom;
-}
-
-char *xwm_mime_type_from_atom(struct wlr_xwm *xwm, xcb_atom_t atom) {
-	if (atom == xwm->atoms[UTF8_STRING]) {
-		return strdup("text/plain;charset=utf-8");
-	} else if (atom == xwm->atoms[TEXT]) {
-		return strdup("text/plain");
-	} else {
-		return xwm_get_atom_name(xwm, atom);
-	}
+	return -1;
 }
 
 struct wlr_xwm_selection *xwm_get_selection(struct wlr_xwm *xwm,
